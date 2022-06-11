@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# (1) argparse
+ARGPARSE=$(getopt -o '' --long info,clear:,load:,init: -- "$@")
+if [[ $? -ne 0 ]]; then
+    exit 1;
+fi
+eval set -- "$ARGPARSE"
+while [ : ]; do
+    case "$1" in
+        --info)
+            cmd="info"
+            path="None"
+            break
+            ;;
+        --clear)
+            cmd="clear"
+            path=$2
+            break
+            ;;
+        --load)
+            cmd="load"
+            path=$2
+            break
+            ;;
+        --init)
+            cmd="init"
+            path=$2
+            break
+            ;;
+        --)
+            echo "Usage: ros2 run ws_manager ws_manager --info or --{clear, load, init} <ws_path>"
+            exit
+            ;;
+    esac
+done
+
+# (3) get abs path to <ws_dir>
+## path[0] == "/"
+if [[ ${path:0:1} == "/" ]]; then
+    ws_path=${path}
+else
+    cwd=$(pwd)
+    ws_path="${cwd}/${path}"
+fi
+## regularize '..' in <ws_path>
+ws_path=`realpath ${ws_path}`
+
+# (4) do checking
+## <ws_dir>/install is assumed to exist
+install_path="${ws_path}/install"
+if [ -d $install_path ]; then
+    echo "${install_path} exists"
+else
+    echo "${install_path} does not exist"
+    exit 1
+fi
+
+# (5) check ENV_VAR existance
+declare -a ENV_VARS_LIST=("LD_LIBRARY_PATH" "PYTHONPATH" "CMAKE_PREFIX_PATH" "COLCON_PREFIX_PATH" "AMENT_PREFIX_PATH" "GAZEBO_MODEL_PATH")
+env_vars=()
+for ENV_VAR in ${ENV_VARS_LIST[@]}; do
+    if [[ "${ENV_VAR}" ]]; then
+        env_vars=("${env_vars[@]}" ${ENV_VAR})
+    fi
+done
+
+# (6) get the value
+declare -A cur_env_values
+declare -A reset_env_values
+for env_var in ${env_vars[@]}; do
+    value=`printenv ${env_var}`
+    if [[ "${value}" ]]; then
+        # (.1) separate by ':' and store as lists
+        splits=(${value//:/ })
+        cur_env_values[${env_var}]=${splits[@]}
+        # (.2) exclude item that contains <ws_path>
+        resets=()
+        for split in ${splits[@]}; do
+            if [[ "$split" != *"$ws_path"* ]]; then
+                resets=("${resets[@]}" ${split})
+            fi
+        done
+        if (( ${#resets[@]} )); then
+            reset_env_values[${env_var}]=${resets[@]}
+        fi
+    fi
+done
+
+for env_var in "${!cur_env_values[@]}"; do
+    echo "${env_var} = ${cur_env_values[${env_var}]}"
+done
+echo "---"
+for env_var in "${!reset_env_values[@]}"; do
+    echo "${env_var} = ${reset_env_values[${env_var}]}"
+done
