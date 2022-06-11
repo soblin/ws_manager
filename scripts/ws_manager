@@ -50,10 +50,7 @@ ws_path=`realpath ${ws_path}`
 # (4) do checking
 # (.1) <ws_dir>/install is assumed to exist
 install_path="${ws_path}/install"
-if [ -d $install_path ]; then
-    echo "${install_path} exists"
-else
-    echo "${install_path} does not exist"
+if [ ! -d $install_path ]; then
     exit 1
 fi
 
@@ -89,11 +86,6 @@ for env_var in ${env_vars[@]}; do
     fi
 done
 
-for env_var in "${!cur_env_values[@]}"; do
-    echo "${env_var} = ${cur_env_values[${env_var}]}"
-done
-echo "---"
-
 # (7) convert [path1 path2 ...] to "path1:path2:..."
 for env_var in "${!reset_env_values[@]}"; do
     lists=${reset_env_values[${env_var}]}
@@ -110,6 +102,15 @@ for env_var in "${!reset_env_values[@]}"; do
     reset_env_values[${env_var}]=${lists_str}
 done
 
+# (8) print command to pass to bash
+command=""
+i=0
 for env_var in "${!reset_env_values[@]}"; do
-    echo "${env_var} = ${reset_env_values[${env_var}]}"
+    if [[ $i == 0 ]]; then
+        command="export ${env_var}=\"${reset_env_values[${env_var}]}\""
+    else
+        command="${command} && export ${env_var}=\"${reset_env_values[${env_var}]}\""
+    fi
+    let i++;
 done
+echo "${command}"

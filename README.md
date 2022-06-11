@@ -18,7 +18,7 @@ A command line tool especially for cleaning-up environmenet variables related to
 Print `COLCON_PREFIX_PATH`.
 
 ```
-ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
+ros2 run ws_manager ws_manager --info
 ```
 
 ### clear
@@ -26,7 +26,7 @@ ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
 Delete the path to `ws_dir` from the environment variables.
 
 ```
-ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
+source <(ros2 run ws_manager ws_manager --clear <ws_dir>)
 ```
 
 ### reinit
@@ -34,5 +34,9 @@ ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
 Delete all paths except for system's one (`/opt/ros/~`) from the environment variables, and then `source <ws_dir>/install/local_setup.bash`
 
 ```
-ros2 run ws_manager ws_manager --reinit <ws_dir>
+source <(ros2 run ws_manager ws_manager --reinit <ws_dir>)
 ```
+
+## context
+
+`ros2 run` is executed in a child process, so running 
