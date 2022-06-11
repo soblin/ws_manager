@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(ws_manager)
 
-find_package(ament_cmake_auto REQUIRED)
+find_package(ament_cmake REQUIRED)
 
 # TODO: enable symlink install for this
 install(
@@ -10,4 +10,4 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_auto_package()
+ament_package()

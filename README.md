@@ -13,24 +13,26 @@ A command line tool especially for cleaning-up environmenet variables related to
 
 ## usage
 
-### clear
+### info
+
+Print `COLCON_PREFIX_PATH`.
 
 ```
 ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
 ```
 
-### load
+### clear
+
+Delete the path to `ws_dir` from the environment variables.
 
 ```
-ros2 run ws_manager ws_manager -l(--load) <ws_dir>
+ros2 run ws_manager ws_manager -c(--clear) <ws_dir>
 ```
 
-### init
+### reinit
+
+Delete all paths except for system's one (`/opt/ros/~`) from the environment variables, and then `source <ws_dir>/install/local_setup.bash`
 
 ```
-ros2 run ws_manager ws_manager -i(--init) <new_ws_dir>
+ros2 run ws_manager ws_manager --reinit <ws_dir>
 ```
-
-### dev
-
-- should support completion for <ws_dir> to clear(it can be guessed from current ENV_VAR)

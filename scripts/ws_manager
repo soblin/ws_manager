@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # (1) argparse
-ARGPARSE=$(getopt -o '' --long info,clear:,load:,init: -- "$@")
+ARGPARSE=$(getopt -o '' --long info,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -18,36 +18,37 @@ while [ : ]; do
             path=$2
             break
             ;;
-        --load)
-            cmd="load"
-            path=$2
-            break
-            ;;
-        --init)
-            cmd="init"
+        --reinit)
+            cmd="reinit"
             path=$2
             break
             ;;
         --)
-            echo "Usage: ros2 run ws_manager ws_manager --info or --{clear, load, init} <ws_path>"
+            echo "Usage: ros2 run ws_manager ws_manager --info or --{clear, reinit} <ws_path>"
             exit
             ;;
     esac
 done
 
+if [[ ${cmd} == "info" ]]; then
+    colcon_prefix_path=`printenv COLCON_PREFIX_PATH`
+    echo "COLCON_PREFIX_PATH = ${colcon_prefix_path}"
+    exit
+fi
+
 # (3) get abs path to <ws_dir>
-## path[0] == "/"
+# (.1) if path[0] == "/" (abspath)
 if [[ ${path:0:1} == "/" ]]; then
     ws_path=${path}
 else
     cwd=$(pwd)
     ws_path="${cwd}/${path}"
 fi
-## regularize '..' in <ws_path>
+# (.2) regularize '..' in <ws_path>
 ws_path=`realpath ${ws_path}`
 
 # (4) do checking
-## <ws_dir>/install is assumed to exist
+# (.1) <ws_dir>/install is assumed to exist
 install_path="${ws_path}/install"
 if [ -d $install_path ]; then
     echo "${install_path} exists"
@@ -81,6 +82,7 @@ for env_var in ${env_vars[@]}; do
                 resets=("${resets[@]}" ${split})
             fi
         done
+        # (.3) if resets() is not empty
         if (( ${#resets[@]} )); then
             reset_env_values[${env_var}]=${resets[@]}
         fi
@@ -91,6 +93,23 @@ for env_var in "${!cur_env_values[@]}"; do
     echo "${env_var} = ${cur_env_values[${env_var}]}"
 done
 echo "---"
+
+# (7) convert [path1 path2 ...] to "path1:path2:..."
+for env_var in "${!reset_env_values[@]}"; do
+    lists=${reset_env_values[${env_var}]}
+    lists_str=""
+    i=0
+    for list in ${lists[@]}; do
+        if [[ $i == 0 ]]; then
+            lists_str="${lists_str}${list}"
+        else
+            lists_str="${lists_str}:${list}"
+        fi
+        let i++
+    done
+    reset_env_values[${env_var}]=${lists_str}
+done
+
 for env_var in "${!reset_env_values[@]}"; do
     echo "${env_var} = ${reset_env_values[${env_var}]}"
 done
