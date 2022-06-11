@@ -53,7 +53,7 @@ def main(args=None):
         if ENV_VAR in os.environ:
             env_vars.append(ENV_VAR)
 
-    # (6) get the value, and separate by ':
+    # (6) get the value
     cur_env_values = {}
     reset_env_var_values = {}
     environ = os.environ
@@ -63,24 +63,31 @@ def main(args=None):
         # (.1) separate by ':' and store as lists
         env_var_value = str(environ[env_var])
         for item in env_var_value.split(':'):
-            # (.2) exclude that contains ws_path
+            # (.2) exclude item that contains <ws_path>
             if ws_path not in item:
                 reset_env_var_values[env_var].append(item)
 
-    # (6) process
+    # (7) process
     for k, v in cur_env_values.items():
         print(f"{k}\t:   {v}")
     print("===")
-    for k in reset_env_var_values.keys():
-        v = reset_env_var_values[k]
+    for env_var in reset_env_var_values.keys():
+        env_var_values = reset_env_var_values[env_var]
         # (.1) convert back to PATH='path1:path2' style
-        v_ = ''
-        for cnt, path in enumerate(v):
+        env_var_concats = ''
+        for cnt, path in enumerate(env_var_values):
             if cnt == 0:
-                v_ += path
+                env_var_concats += path
             else:
-                v_ += (':' + path)
-        reset_env_var_values[k] = v_
+                env_var_concats += (':' + path)
+
+        reset_env_var_values[env_var] = env_var_concats
+
     for k, v in reset_env_var_values.items():
         print(f"{k}\t:   {v}")
-    print    
+
+    # overwrite
+    for env_var, env_var_values in reset_env_var_values.items():
+        os.environ[env_var] = env_var_values
+
+    # check after overwrite
