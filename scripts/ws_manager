@@ -84,10 +84,7 @@ for env_var in ${env_vars[@]}; do
                 overwrites=("${overwrites[@]}" ${split})
             fi
         done
-        # (.3) if overwrites() is not empty
-        if (( ${#overwrites[@]} )); then
-            overwrite_env_values[${env_var}]=${overwrites[@]}
-        fi
+        overwrite_env_values[${env_var}]=${overwrites[@]}
     fi
 done
 
