@@ -66,21 +66,28 @@ get_cleared_var_values() {
     done
 }
 
-# convert [path1 path2 ...] to "path1:path2:..."
+# convert [path1 path2 ...] to "path1:path2:...",
+path_list2str() {
+    local -n _list=$1
+    local -n _str=$2
+    i=0
+    for l in ${_list[@]}; do
+        if [[ $i == 0 ]]; then
+            _str="${l}"
+        else
+            _str="${_str}:${l}"
+        fi
+        let i++
+    done
+}
+
+# convert each values from [path1 path2 ...] to "path1:path2:..."
 convert_path_list2str() {
     local -n _map_var_values=$1
     for env_var in "${!_map_var_values[@]}"; do
         values=(${_map_var_values[${env_var}]})
         values_str=""
-        i=0
-        for value in ${values[@]}; do
-            if [[ $i == 0 ]]; then
-                values_str="${value}"
-            else
-                values_str="${values_str}:${value}"
-            fi
-            let i++
-        done
+        path_list2str values values_str
         _map_var_values[${env_var}]=${values_str}
     done
 }
