@@ -3,7 +3,6 @@ project(ws_manager)
 
 find_package(ament_cmake REQUIRED)
 
-# TODO: enable symlink install for this
 install(
   PROGRAMS
   scripts/ws_manager
