@@ -64,8 +64,8 @@ if [[ ${cmd} == "check" ]]; then
         values=(${cur_env_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
         item_num=${#values[@]}
         if [[ "${item_num}" -gt "${max_item_num}" ]]; then
+            echo "${env_var}(${max_item_num} out of ${item_num} items):"
             item_num=${max_item_num}
-            echo "${env_var} (up to ${item_num} items):"
         else
             echo "${env_var}:"
         fi
