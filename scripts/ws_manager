@@ -66,14 +66,14 @@ clear_env_values() {
 }
 
 convert_path_list2str() {
-    for env_var in "${!map_env_newvalues[@]}"; do
-        local -n _map_env_values=$1
+    local -n _map_env_values=$1
+    for env_var in "${!_map_env_values[@]}"; do
         values=(${_map_env_values[${env_var}]})
         values_str=""
         i=0
         for value in ${values[@]}; do
             if [[ $i == 0 ]]; then
-                values_str="${values_str}${value}"
+                values_str="${value}"
             else
                 values_str="${values_str}:${value}"
             fi
