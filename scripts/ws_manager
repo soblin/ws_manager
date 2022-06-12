@@ -1,7 +1,8 @@
 #!/bin/bash
 
+HELP_MSG="Usage:\nFor checking current status, run\nros2 run ws_manager ws_manager --check\n\nFor updating shell variable, run\nsource <(ros2 run ws_manager ws_manager --{clear, reinit} <ws_path>)"
 # (1) argparse
-ARGPARSE=$(getopt -o '' --long check,clear:,reinit: -- "$@")
+ARGPARSE=$(getopt -o '' --long check,help,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -23,8 +24,12 @@ while [ : ]; do
             path=$2
             break
             ;;
+        --help)
+            echo -e "${HELP_MSG}"
+            exit
+            ;;
         --)
-            echo "Usage: ros2 run ws_manager ws_manager --check or --{clear, reinit} <ws_path>"
+            echo -e "${HELP_MSG}"
             exit
             ;;
     esac
