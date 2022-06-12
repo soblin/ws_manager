@@ -13,7 +13,15 @@ A command line tool especially for cleaning-up environmenet variables related to
 
 ## usage
 
+### help
+
+```
+ros2 run ws_manager ws_manager --help
+```
+
 ### check
+
+Print current values.
 
 ```
 ros2 run ws_manager ws_manager --check

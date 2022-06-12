@@ -1,6 +1,7 @@
 #!/bin/bash
 
 HELP_MSG="Usage:\nFor checking current status, run\nros2 run ws_manager ws_manager --check\n\nFor updating shell variable, run\nsource <(ros2 run ws_manager ws_manager --{clear, reinit} <ws_path>)"
+SEPARATOR="========================================"
 
 # (1) argparse
 ARGPARSE=$(getopt -o '' --long check,help,clear:,reinit: -- "$@")
@@ -51,15 +52,29 @@ for env_var in ${env_vars[@]}; do
     value=`printenv ${env_var}`
     if [[ "${value}" ]]; then
         # (.1) separate by ':' and store as lists
-        splits=(${value//:/ })
+        IFS=':' read -r -a splits <<< "${value}"
         cur_env_values[${env_var}]=${splits[@]}
     fi
 done
 
+let max_item_num=5
 if [[ ${cmd} == "check" ]]; then
-    # TODO print all of ENV_VAR_LISTS up to N items
-    colcon_prefix_path=`printenv COLCON_PREFIX_PATH`
-    echo "COLCON_PREFIX_PATH = ${colcon_prefix_path}"
+    echo "${SEPARATOR}"
+    for env_var in "${!cur_env_values[@]}"; do
+        values=(${cur_env_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
+        item_num=${#values[@]}
+        if [[ "${item_num}" -gt "${max_item_num}" ]]; then
+            item_num=${max_item_num}
+            echo "${env_var} (up to ${item_num} items):"
+        else
+            echo "${env_var}:"
+        fi
+        let item_num=${item_num}-1 # NOTE: for seq indexing
+        for i in `seq 0 ${item_num}`; do
+            echo "${values[$i]}"
+        done
+        echo "${SEPARATOR}"
+    done
     exit
 fi
 
@@ -74,14 +89,14 @@ fi
 # (.2) regularize '..' in <ws_path>
 ws_path=`realpath ${ws_path}`
 
-# (4) do checking
+# (5) do checking
 # (.1) <ws_dir>/install is assumed to exist
 install_path="${ws_path}/install"
 if [ ! -d $install_path ]; then
     exit 1
 fi
 
-# (5) delete entries that include <ws_dir>
+# (6) delete entries that include <ws_dir>
 declare -A overwrite_env_values
 for env_var in "${!cur_env_values[@]}"; do
     values=${cur_env_values[${env_var}]}
@@ -95,7 +110,7 @@ for env_var in "${!cur_env_values[@]}"; do
     overwrite_env_values[${env_var}]=${overwrites[@]}
 done
 
-# (6) convert [path1 path2 ...] to "path1:path2:..."
+# (7) convert [path1 path2 ...] to "path1:path2:..."
 for env_var in "${!overwrite_env_values[@]}"; do
     lists=${overwrite_env_values[${env_var}]}
     lists_str=""
