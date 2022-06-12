@@ -32,7 +32,7 @@ ECHO_WARN() {
 ECHO_ERROR() {
     local -n _body=$1
     if [[ "${_body}" == "" ]]; then
-        _body="echo \"[WARN]: $2\""
+        _body="echo \"[ERROR]: $2\""
     else
         _body="${_body};echo \"[ERROR]: $2\""
     fi
@@ -180,7 +180,7 @@ install_path="${ws_path}/install"
 if [ ! -d $install_path ]; then
     body=""
     msg="${install_path} does not exists, exiting."
-    ECHO_ERROR body msg
+    ECHO_ERROR body "${msg}"
     echo "${body}"
     exit 1
 fi
