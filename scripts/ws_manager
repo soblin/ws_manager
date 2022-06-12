@@ -57,22 +57,27 @@ for env_var in ${env_vars[@]}; do
     fi
 done
 
-let max_item_num=5
+let max_item_num=5 # TODO
 if [[ ${cmd} == "check" ]]; then
     echo "${SEPARATOR}"
     for env_var in "${!cur_env_values[@]}"; do
         values=(${cur_env_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
         item_num=${#values[@]}
+        cnt_num=${item_num}
         if [[ "${item_num}" -gt "${max_item_num}" ]]; then
             echo "${env_var}(${max_item_num} out of ${item_num} items):"
-            item_num=${max_item_num}
+            cnt_num=${max_item_num}
         else
             echo "${env_var}:"
         fi
-        let item_num=${item_num}-1 # NOTE: for seq indexing
-        for i in `seq 0 ${item_num}`; do
+        let cnt_num=${cnt_num}-1 # NOTE: for seq indexing
+        for i in `seq 0 ${cnt_num}`; do
             echo "${values[$i]}"
         done
+        let cnt_num=${cnt_num}+1
+        if [[ "${cnt_num}" != "${item_num}" ]]; then
+            echo "......"
+        fi
         echo "${SEPARATOR}"
     done
     exit
@@ -96,13 +101,13 @@ if [ ! -d $install_path ]; then
     exit 1
 fi
 
-# (6) delete entries that include <ws_dir>
+# (6) exclude entries that include <ws_dir> for overwriting
 declare -A overwrite_env_values
 for env_var in "${!cur_env_values[@]}"; do
     values=${cur_env_values[${env_var}]}
     # (.1) exclude item that contains <ws_path>
     overwrites=()
- for split in ${values[@]}; do
+    for split in ${values[@]}; do
         if [[ "$split" != *"$ws_path"* ]]; then
             overwrites=("${overwrites[@]}" ${split})
         fi
@@ -144,5 +149,10 @@ fi
 
 if [[ ${cmd} == "reinit" ]]; then
     echo "echo 'reinit is WIP'"
+    ## TODO
+    ## for all paths in COLCON_PREFIX_PATH
+    ## do clear => `command`
+    ## and then => command+="source <ws_dir>/install/setup.bash"
+    ## So `clear` function should be defined
     exit
 fi
