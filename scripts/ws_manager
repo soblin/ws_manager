@@ -11,6 +11,42 @@ source <(ros2 run ws_manager ws_manager --reinit <ws_path>)\
 
 SEPARATOR="========================================"
 
+ECHO_INFO() {
+    local -n _body=$1
+    if [[ "${_body}" == "" ]]; then
+        _body="echo \"[INFO]: $2\""
+    else
+        _body="${_body};echo \"[INFO]: $2\""
+    fi
+}
+
+ECHO_WARN() {
+    local -n _body=$1
+    if [[ "${_body}" == "" ]]; then
+        _body="echo \"[WARN]: $2\""
+    else
+        _body="${_body};echo \"[WARN]: $2\""
+    fi
+}
+
+ECHO_ERROR() {
+    local -n _body=$1
+    if [[ "${_body}" == "" ]]; then
+        _body="echo \"[WARN]: $2\""
+    else
+        _body="${_body};echo \"[ERROR]: $2\""
+    fi
+}
+
+ECHO_CMD() {
+    local -n _body=$1
+    if [[ "${_body}" == "" ]]; then
+        _body="$2"
+    else
+        _body="${_body};$2"
+    fi
+}
+
 # (1) argparse
 ARGPARSE=$(getopt -o '' --long check,help,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -55,21 +91,21 @@ for ENV_VAR in ${ENV_VARS_LIST[@]}; do
 done
 
 # (3) get non-empty env value
-declare -A cur_env_values
+declare -A map_var_values
 for env_var in ${env_vars[@]}; do
     value=`printenv ${env_var}`
     if [[ "${value}" ]]; then
         # (.1) separate by ':' and store as lists
         IFS=':' read -r -a splits <<< "${value}"
-        cur_env_values[${env_var}]=${splits[@]}
+        map_var_values[${env_var}]=${splits[@]}
     fi
 done
 
 let max_item_num=5 # TODO
 if [[ ${cmd} == "check" ]]; then
     echo "${SEPARATOR}"
-    for env_var in "${!cur_env_values[@]}"; do
-        values=(${cur_env_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
+    for env_var in "${!map_var_values[@]}"; do
+        values=(${map_var_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
         item_num=${#values[@]}
         cnt_num=${item_num}
         if [[ "${item_num}" -gt "${max_item_num}" ]]; then
@@ -106,18 +142,21 @@ ws_path=`realpath ${ws_path}`
 # (.1) <ws_dir>/install is assumed to exist
 install_path="${ws_path}/install"
 if [ ! -d $install_path ]; then
-    echo "echo \"Error: ${install_path} does not exist, exiting\""
+    body=""
+    msg="${install_path} does not exists, exiting."
+    ECHO_ERROR body msg
+    echo "${body}"
     exit 1
 fi
 
 # (6) exclude entries that include <ws_dir> for overwriting
 clear_env_values() {
-    # usage: clear_env_values ws_path cur_env_values cleared_env_values
+    # usage: clear_env_values ws_path map_var_values map_env_newvalues
     local -n _ws_path=$1
-    local -n _cur_env_values=$2
-    local -n _cleared_env_values=$3
-    for env_var in "${!_cur_env_values[@]}"; do
-        values=${_cur_env_values[${env_var}]}
+    local -n _map_var_values=$2
+    local -n _map_env_newvalues=$3
+    for env_var in "${!_map_var_values[@]}"; do
+        values=${_map_var_values[${env_var}]}
         # (.1) exclude item that contains <ws_path>
         _cleareds=()
         for value in ${values[@]}; do
@@ -125,39 +164,41 @@ clear_env_values() {
                 _cleareds=("${_cleareds[@]}" ${value})
             fi
         done
-        _cleared_env_values[${env_var}]=${_cleareds[@]}
+        _map_env_newvalues[${env_var}]=${_cleareds[@]}
     done
 }
 
-declare -A cleared_env_values
-clear_env_values ws_path cur_env_values cleared_env_values
+declare -A map_env_newvalues
+clear_env_values ws_path map_var_values map_env_newvalues
 
 # (7) convert [path1 path2 ...] to "path1:path2:..."
-for env_var in "${!cleared_env_values[@]}"; do
-    lists=${cleared_env_values[${env_var}]}
-    lists_str=""
+for env_var in "${!map_env_newvalues[@]}"; do
+    values=${map_env_newvalues[${env_var}]}
+    values_str=""
     i=0
-    for list in ${lists[@]}; do
+    for value in ${values[@]}; do
         if [[ $i == 0 ]]; then
-            lists_str="${lists_str}${list}"
+            values_str="${values_str}${value}"
         else
-            lists_str="${lists_str}:${list}"
+            values_str="${values_str}:${value}"
         fi
         let i++
     done
-    cleared_env_values[${env_var}]=${lists_str}
+    map_env_newvalues[${env_var}]=${values_str}
 done
 
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
-    command="echo \"Info: Clearing...\""
+    body=""
+    ECHO_INFO body "Clearing..."
     i=0
-    for env_var in "${!cleared_env_values[@]}"; do
-        command="${command} && export ${env_var}=\"${cleared_env_values[${env_var}]}\""
+    for env_var in "${!map_env_newvalues[@]}"; do
+        cmd="export ${env_var}=\"${map_env_newvalues[${env_var}]}\""
+        ECHO_CMD body "${cmd}"
         let i++;
     done
-    command="${command} && echo \"Info: Done\""
-    echo "${command}"
+    ECHO_INFO body "Done."
+    echo "${body}"
     exit
 fi
 
