@@ -37,7 +37,7 @@ source <(ros2 run ws_manager ws_manager --clear <ws_dir>)
 
 ### reinit
 
-Delete all paths except for system's one (`/opt/ros/~`) from the listed environment variables, and then `source <ws_dir>/install/local_setup.bash`
+Delete all paths except for the system's ones (`/opt/ros/~`) from the listed environment variables, and then `source <ws_dir>/install/local_setup.bash`
 
 ```
 source <(ros2 run ws_manager ws_manager --reinit <ws_dir>)

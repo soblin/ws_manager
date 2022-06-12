@@ -1,6 +1,14 @@
 #!/bin/bash
 
-HELP_MSG="Usage:\nFor checking current status, run\nros2 run ws_manager ws_manager --check\n\nFor updating shell variable, run\nsource <(ros2 run ws_manager ws_manager --{clear, reinit} <ws_path>)"
+HELP_MSG="Usage:\n\
+For checking current status, run\n\
+ros2 run ws_manager ws_manager --check\n\n\
+For clearing <ws_dir> from the current shell variables, run\n\
+source <(ros2 run ws_manager ws_manager --clear <ws_path>)\n\n\
+For cleaning up and re-initializing the shell variables with <ws_dir> as well as the system's ones(/opt/ros/~), run\n\
+source <(ros2 run ws_manager ws_manager --reinit <ws_path>)\
+"
+
 SEPARATOR="========================================"
 
 # (1) argparse
@@ -152,7 +160,7 @@ if [[ ${cmd} == "reinit" ]]; then
     ## TODO
     ## for all paths in COLCON_PREFIX_PATH
     ## do clear => `command`
-    ## and then => command+="source <ws_dir>/install/setup.bash"
+    ## and then => command+="source <ws_dir>/install/local_setup.bash"
     ## So `clear` function should be defined
     exit
 fi
