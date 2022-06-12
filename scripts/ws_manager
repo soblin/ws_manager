@@ -47,28 +47,30 @@ ECHO_CMD() {
     fi
 }
 
-clear_env_values() {
+# exclude entries that include <ws_dir> for overwriting
+get_cleared_var_values() {
     # usage: clear_env_values ws_path map_var_values map_env_newvalues
     local -n _ws_path=$1
     local -n _map_var_values=$2
-    local -n _map_env_newvalues=$3
+    local -n _map_var_newvalues=$3
     for env_var in "${!_map_var_values[@]}"; do
         values=(${_map_var_values[${env_var}]})
         # (.1) exclude item that contains <ws_path>
-        _cleareds=()
+        _cleared=()
         for value in ${values[@]}; do
             if [[ "$value" != *"$_ws_path"* ]]; then
-                _cleareds=("${_cleareds[@]}" ${value})
+                _cleared=("${_cleared[@]}" ${value})
             fi
         done
-        _map_env_newvalues[${env_var}]=${_cleareds[@]}
+        _map_var_newvalues[${env_var}]=${_cleared[@]}
     done
 }
 
+# convert [path1 path2 ...] to "path1:path2:..."
 convert_path_list2str() {
-    local -n _map_env_values=$1
-    for env_var in "${!_map_env_values[@]}"; do
-        values=(${_map_env_values[${env_var}]})
+    local -n _map_var_values=$1
+    for env_var in "${!_map_var_values[@]}"; do
+        values=(${_map_var_values[${env_var}]})
         values_str=""
         i=0
         for value in ${values[@]}; do
@@ -79,7 +81,7 @@ convert_path_list2str() {
             fi
             let i++
         done
-        _map_env_values[${env_var}]=${values_str}
+        _map_var_values[${env_var}]=${values_str}
     done
 }
 
@@ -186,19 +188,19 @@ if [ ! -d $install_path ]; then
 fi
 
 # (6) exclude entries that include <ws_dir> for overwriting
-declare -A map_env_newvalues
-clear_env_values ws_path map_var_values map_env_newvalues
+declare -A map_var_newvalues
+get_cleared_var_values ws_path map_var_values map_var_newvalues
 
 # (7) convert [path1 path2 ...] to "path1:path2:..."
-convert_path_list2str map_env_newvalues
+convert_path_list2str map_var_newvalues
 
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
     body=""
     ECHO_INFO body "Clearing..."
     i=0
-    for env_var in "${!map_env_newvalues[@]}"; do
-        cmd="export ${env_var}=\"${map_env_newvalues[${env_var}]}\""
+    for env_var in "${!map_var_newvalues[@]}"; do
+        cmd="export ${env_var}=\"${map_var_newvalues[${env_var}]}\""
         ECHO_CMD body "${cmd}"
         let i++;
     done
