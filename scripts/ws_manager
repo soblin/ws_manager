@@ -1,6 +1,7 @@
 #!/bin/bash
 
 HELP_MSG="Usage:\nFor checking current status, run\nros2 run ws_manager ws_manager --check\n\nFor updating shell variable, run\nsource <(ros2 run ws_manager ws_manager --{clear, reinit} <ws_path>)"
+
 # (1) argparse
 ARGPARSE=$(getopt -o '' --long check,help,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -35,13 +36,34 @@ while [ : ]; do
     esac
 done
 
+# (2) check ENV_VAR existance
+declare -a ENV_VARS_LIST=("COLCON_PREFIX_PATH" "AMENT_PREFIX_PATH" "CMAKE_PREFIX_PATH" "LD_LIBRARY_PATH" "PYTHONPATH" "GAZEBO_MODEL_PATH")
+env_vars=()
+for ENV_VAR in ${ENV_VARS_LIST[@]}; do
+    if [[ "${ENV_VAR}" ]]; then
+        env_vars=("${env_vars[@]}" ${ENV_VAR})
+    fi
+done
+
+# (3) get non-empty env value
+declare -A cur_env_values
+for env_var in ${env_vars[@]}; do
+    value=`printenv ${env_var}`
+    if [[ "${value}" ]]; then
+        # (.1) separate by ':' and store as lists
+        splits=(${value//:/ })
+        cur_env_values[${env_var}]=${splits[@]}
+    fi
+done
+
 if [[ ${cmd} == "check" ]]; then
+    # TODO print all of ENV_VAR_LISTS up to N items
     colcon_prefix_path=`printenv COLCON_PREFIX_PATH`
     echo "COLCON_PREFIX_PATH = ${colcon_prefix_path}"
     exit
 fi
 
-# (3) get abs path to <ws_dir>
+# (4) get abs path to <ws_dir>
 # (.1) if path[0] == "/" (abspath)
 if [[ ${path:0:1} == "/" ]]; then
     ws_path=${path}
@@ -59,36 +81,21 @@ if [ ! -d $install_path ]; then
     exit 1
 fi
 
-# (5) check ENV_VAR existance
-declare -a ENV_VARS_LIST=("COLCON_PREFIX_PATH" "AMENT_PREFIX_PATH" "CMAKE_PREFIX_PATH" "LD_LIBRARY_PATH" "PYTHONPATH" "GAZEBO_MODEL_PATH")
-env_vars=()
-for ENV_VAR in ${ENV_VARS_LIST[@]}; do
-    if [[ "${ENV_VAR}" ]]; then
-        env_vars=("${env_vars[@]}" ${ENV_VAR})
-    fi
-done
-
-# (6) get the value
-declare -A cur_env_values
+# (5) delete entries that include <ws_dir>
 declare -A overwrite_env_values
-for env_var in ${env_vars[@]}; do
-    value=`printenv ${env_var}`
-    if [[ "${value}" ]]; then
-        # (.1) separate by ':' and store as lists
-        splits=(${value//:/ })
-        cur_env_values[${env_var}]=${splits[@]}
-        # (.2) exclude item that contains <ws_path>
-        overwrites=()
-        for split in ${splits[@]}; do
-            if [[ "$split" != *"$ws_path"* ]]; then
-                overwrites=("${overwrites[@]}" ${split})
-            fi
-        done
-        overwrite_env_values[${env_var}]=${overwrites[@]}
-    fi
+for env_var in "${!cur_env_values[@]}"; do
+    values=${cur_env_values[${env_var}]}
+    # (.1) exclude item that contains <ws_path>
+    overwrites=()
+ for split in ${values[@]}; do
+        if [[ "$split" != *"$ws_path"* ]]; then
+            overwrites=("${overwrites[@]}" ${split})
+        fi
+    done
+    overwrite_env_values[${env_var}]=${overwrites[@]}
 done
 
-# (7) convert [path1 path2 ...] to "path1:path2:..."
+# (6) convert [path1 path2 ...] to "path1:path2:..."
 for env_var in "${!overwrite_env_values[@]}"; do
     lists=${overwrite_env_values[${env_var}]}
     lists_str=""
@@ -104,15 +111,23 @@ for env_var in "${!overwrite_env_values[@]}"; do
     overwrite_env_values[${env_var}]=${lists_str}
 done
 
-# (8) print command to pass to bash
-command=""
-i=0
-for env_var in "${!overwrite_env_values[@]}"; do
-    if [[ $i == 0 ]]; then
-        command="export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
-    else
-        command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
-    fi
-    let i++;
-done
-echo "${command}"
+if [[ ${cmd} == "clear" ]]; then
+    # print the command to `source`
+    command=""
+    i=0
+    for env_var in "${!overwrite_env_values[@]}"; do
+        if [[ $i == 0 ]]; then
+            command="export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
+        else
+            command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
+        fi
+        let i++;
+    done
+    echo "${command}"
+    exit
+fi
+
+if [[ ${cmd} == "reinit" ]]; then
+    echo "echo 'reinit is WIP'"
+    exit
+fi
