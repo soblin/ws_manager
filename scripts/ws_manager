@@ -47,6 +47,42 @@ ECHO_CMD() {
     fi
 }
 
+clear_env_values() {
+    # usage: clear_env_values ws_path map_var_values map_env_newvalues
+    local -n _ws_path=$1
+    local -n _map_var_values=$2
+    local -n _map_env_newvalues=$3
+    for env_var in "${!_map_var_values[@]}"; do
+        values=(${_map_var_values[${env_var}]})
+        # (.1) exclude item that contains <ws_path>
+        _cleareds=()
+        for value in ${values[@]}; do
+            if [[ "$value" != *"$_ws_path"* ]]; then
+                _cleareds=("${_cleareds[@]}" ${value})
+            fi
+        done
+        _map_env_newvalues[${env_var}]=${_cleareds[@]}
+    done
+}
+
+convert_path_list2str() {
+    for env_var in "${!map_env_newvalues[@]}"; do
+        local -n _map_env_values=$1
+        values=(${_map_env_values[${env_var}]})
+        values_str=""
+        i=0
+        for value in ${values[@]}; do
+            if [[ $i == 0 ]]; then
+                values_str="${values_str}${value}"
+            else
+                values_str="${values_str}:${value}"
+            fi
+            let i++
+        done
+        _map_env_values[${env_var}]=${values_str}
+    done
+}
+
 # (1) argparse
 ARGPARSE=$(getopt -o '' --long check,help,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -150,42 +186,11 @@ if [ ! -d $install_path ]; then
 fi
 
 # (6) exclude entries that include <ws_dir> for overwriting
-clear_env_values() {
-    # usage: clear_env_values ws_path map_var_values map_env_newvalues
-    local -n _ws_path=$1
-    local -n _map_var_values=$2
-    local -n _map_env_newvalues=$3
-    for env_var in "${!_map_var_values[@]}"; do
-        values=${_map_var_values[${env_var}]}
-        # (.1) exclude item that contains <ws_path>
-        _cleareds=()
-        for value in ${values[@]}; do
-            if [[ "$value" != *"$_ws_path"* ]]; then
-                _cleareds=("${_cleareds[@]}" ${value})
-            fi
-        done
-        _map_env_newvalues[${env_var}]=${_cleareds[@]}
-    done
-}
-
 declare -A map_env_newvalues
 clear_env_values ws_path map_var_values map_env_newvalues
 
 # (7) convert [path1 path2 ...] to "path1:path2:..."
-for env_var in "${!map_env_newvalues[@]}"; do
-    values=${map_env_newvalues[${env_var}]}
-    values_str=""
-    i=0
-    for value in ${values[@]}; do
-        if [[ $i == 0 ]]; then
-            values_str="${values_str}${value}"
-        else
-            values_str="${values_str}:${value}"
-        fi
-        let i++
-    done
-    map_env_newvalues[${env_var}]=${values_str}
-done
+convert_path_list2str map_env_newvalues
 
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
