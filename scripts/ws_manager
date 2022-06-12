@@ -47,26 +47,15 @@ ECHO_CMD() {
     fi
 }
 
-# exclude entries that include <ws_dir> for overwriting
-get_cleared_var_values() {
-    # usage: clear_env_values ws_path map_var_values map_env_newvalues
-    local -n _ws_path=$1
-    local -n _map_var_values=$2
-    local -n _map_var_newvalues=$3
-    for env_var in "${!_map_var_values[@]}"; do
-        values=(${_map_var_values[${env_var}]})
-        # (.1) exclude item that contains <ws_path>
-        _cleared=()
-        for value in ${values[@]}; do
-            if [[ "$value" != *"$_ws_path"* ]]; then
-                _cleared=("${_cleared[@]}" ${value})
-            fi
-        done
-        _map_var_newvalues[${env_var}]=${_cleared[@]}
-    done
+# convert "path1:path2:..." to [path1 path2 ...]
+path_str2list() {
+    local -n _list=$2
+    # separate by ':' and store as lists
+    IFS=':' read -r -a splits <<< "$1"
+    _list=${splits[@]}
 }
 
-# convert [path1 path2 ...] to "path1:path2:...",
+# convert [path1 path2 ...] to "path1:path2:..."
 path_list2str() {
     local -n _list=$1
     local -n _str=$2
@@ -89,6 +78,25 @@ convert_path_list2str() {
         values_str=""
         path_list2str values values_str
         _map_var_values[${env_var}]=${values_str}
+    done
+}
+
+# exclude entries that include <ws_dir> for overwriting
+get_cleared_var_values() {
+    # usage: clear_env_values ws_path map_var_values map_env_newvalues
+    local -n _ws_path=$1
+    local -n _map_var_values=$2
+    local -n _map_var_newvalues=$3
+    for env_var in "${!_map_var_values[@]}"; do
+        values=(${_map_var_values[${env_var}]})
+        # (.1) exclude item that contains <ws_path>
+        _cleared=()
+        for value in ${values[@]}; do
+            if [[ "$value" != *"$_ws_path"* ]]; then
+                _cleared=("${_cleared[@]}" ${value})
+            fi
+        done
+        _map_var_newvalues[${env_var}]=${_cleared[@]}
     done
 }
 
@@ -141,8 +149,7 @@ for env_var in ${env_vars[@]}; do
     value=`printenv ${env_var}`
     if [[ "${value}" ]]; then
         # (.1) separate by ':' and store as lists
-        IFS=':' read -r -a splits <<< "${value}"
-        map_var_values[${env_var}]=${splits[@]}
+        path_str2list "${value}" map_var_values[${env_var}]
     fi
 done
 
