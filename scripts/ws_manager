@@ -202,7 +202,6 @@ if [[ ${cmd} == "clear" ]]; then
     for env_var in "${!map_var_newvalues[@]}"; do
         cmd="export ${env_var}=\"${map_var_newvalues[${env_var}]}\""
         ECHO_CMD body "${cmd}"
-        let i++;
     done
     ECHO_INFO body "Done."
     echo "${body}"
