@@ -106,6 +106,7 @@ ws_path=`realpath ${ws_path}`
 # (.1) <ws_dir>/install is assumed to exist
 install_path="${ws_path}/install"
 if [ ! -d $install_path ]; then
+    echo "echo \"Error: ${install_path} does not exist, exiting\""
     exit 1
 fi
 
@@ -115,9 +116,9 @@ for env_var in "${!cur_env_values[@]}"; do
     values=${cur_env_values[${env_var}]}
     # (.1) exclude item that contains <ws_path>
     overwrites=()
-    for split in ${values[@]}; do
-        if [[ "$split" != *"$ws_path"* ]]; then
-            overwrites=("${overwrites[@]}" ${split})
+    for value in ${values[@]}; do
+        if [[ "$value" != *"$ws_path"* ]]; then
+            overwrites=("${overwrites[@]}" ${value})
         fi
     done
     overwrite_env_values[${env_var}]=${overwrites[@]}
@@ -141,16 +142,13 @@ done
 
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
-    command=""
+    command="echo \"Info: Clearing...\""
     i=0
     for env_var in "${!overwrite_env_values[@]}"; do
-        if [[ $i == 0 ]]; then
-            command="export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
-        else
-            command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
-        fi
+        command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
         let i++;
     done
+    command="${command} && echo \"Info: Done\""
     echo "${command}"
     exit
 fi
