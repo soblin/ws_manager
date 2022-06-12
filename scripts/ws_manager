@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # (1) argparse
-ARGPARSE=$(getopt -o '' --long info,clear:,reinit: -- "$@")
+ARGPARSE=$(getopt -o '' --long check,clear:,reinit: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
 eval set -- "$ARGPARSE"
 while [ : ]; do
     case "$1" in
-        --info)
-            cmd="info"
+        --check)
+            cmd="check"
             path="None"
             break
             ;;
@@ -24,13 +24,13 @@ while [ : ]; do
             break
             ;;
         --)
-            echo "Usage: ros2 run ws_manager ws_manager --info or --{clear, reinit} <ws_path>"
+            echo "Usage: ros2 run ws_manager ws_manager --check or --{clear, reinit} <ws_path>"
             exit
             ;;
     esac
 done
 
-if [[ ${cmd} == "info" ]]; then
+if [[ ${cmd} == "check" ]]; then
     colcon_prefix_path=`printenv COLCON_PREFIX_PATH`
     echo "COLCON_PREFIX_PATH = ${colcon_prefix_path}"
     exit
@@ -55,7 +55,7 @@ if [ ! -d $install_path ]; then
 fi
 
 # (5) check ENV_VAR existance
-declare -a ENV_VARS_LIST=("LD_LIBRARY_PATH" "PYTHONPATH" "CMAKE_PREFIX_PATH" "COLCON_PREFIX_PATH" "AMENT_PREFIX_PATH" "GAZEBO_MODEL_PATH")
+declare -a ENV_VARS_LIST=("COLCON_PREFIX_PATH" "AMENT_PREFIX_PATH" "CMAKE_PREFIX_PATH" "LD_LIBRARY_PATH" "PYTHONPATH" "GAZEBO_MODEL_PATH")
 env_vars=()
 for ENV_VAR in ${ENV_VARS_LIST[@]}; do
     if [[ "${ENV_VAR}" ]]; then
@@ -65,7 +65,7 @@ done
 
 # (6) get the value
 declare -A cur_env_values
-declare -A reset_env_values
+declare -A overwrite_env_values
 for env_var in ${env_vars[@]}; do
     value=`printenv ${env_var}`
     if [[ "${value}" ]]; then
@@ -73,22 +73,22 @@ for env_var in ${env_vars[@]}; do
         splits=(${value//:/ })
         cur_env_values[${env_var}]=${splits[@]}
         # (.2) exclude item that contains <ws_path>
-        resets=()
+        overwrites=()
         for split in ${splits[@]}; do
             if [[ "$split" != *"$ws_path"* ]]; then
-                resets=("${resets[@]}" ${split})
+                overwrites=("${overwrites[@]}" ${split})
             fi
         done
-        # (.3) if resets() is not empty
-        if (( ${#resets[@]} )); then
-            reset_env_values[${env_var}]=${resets[@]}
+        # (.3) if overwrites() is not empty
+        if (( ${#overwrites[@]} )); then
+            overwrite_env_values[${env_var}]=${overwrites[@]}
         fi
     fi
 done
 
 # (7) convert [path1 path2 ...] to "path1:path2:..."
-for env_var in "${!reset_env_values[@]}"; do
-    lists=${reset_env_values[${env_var}]}
+for env_var in "${!overwrite_env_values[@]}"; do
+    lists=${overwrite_env_values[${env_var}]}
     lists_str=""
     i=0
     for list in ${lists[@]}; do
@@ -99,17 +99,17 @@ for env_var in "${!reset_env_values[@]}"; do
         fi
         let i++
     done
-    reset_env_values[${env_var}]=${lists_str}
+    overwrite_env_values[${env_var}]=${lists_str}
 done
 
 # (8) print command to pass to bash
 command=""
 i=0
-for env_var in "${!reset_env_values[@]}"; do
+for env_var in "${!overwrite_env_values[@]}"; do
     if [[ $i == 0 ]]; then
-        command="export ${env_var}=\"${reset_env_values[${env_var}]}\""
+        command="export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
     else
-        command="${command} && export ${env_var}=\"${reset_env_values[${env_var}]}\""
+        command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
     fi
     let i++;
 done
