@@ -111,22 +111,30 @@ if [ ! -d $install_path ]; then
 fi
 
 # (6) exclude entries that include <ws_dir> for overwriting
-declare -A overwrite_env_values
-for env_var in "${!cur_env_values[@]}"; do
-    values=${cur_env_values[${env_var}]}
-    # (.1) exclude item that contains <ws_path>
-    overwrites=()
-    for value in ${values[@]}; do
-        if [[ "$value" != *"$ws_path"* ]]; then
-            overwrites=("${overwrites[@]}" ${value})
-        fi
+clear_env_values() {
+    # usage: clear_env_values ws_path cur_env_values cleared_env_values
+    local -n _ws_path=$1
+    local -n _cur_env_values=$2
+    local -n _cleared_env_values=$3
+    for env_var in "${!_cur_env_values[@]}"; do
+        values=${_cur_env_values[${env_var}]}
+        # (.1) exclude item that contains <ws_path>
+        _cleareds=()
+        for value in ${values[@]}; do
+            if [[ "$value" != *"$_ws_path"* ]]; then
+                _cleareds=("${_cleareds[@]}" ${value})
+            fi
+        done
+        _cleared_env_values[${env_var}]=${_cleareds[@]}
     done
-    overwrite_env_values[${env_var}]=${overwrites[@]}
-done
+}
+
+declare -A cleared_env_values
+clear_env_values ws_path cur_env_values cleared_env_values
 
 # (7) convert [path1 path2 ...] to "path1:path2:..."
-for env_var in "${!overwrite_env_values[@]}"; do
-    lists=${overwrite_env_values[${env_var}]}
+for env_var in "${!cleared_env_values[@]}"; do
+    lists=${cleared_env_values[${env_var}]}
     lists_str=""
     i=0
     for list in ${lists[@]}; do
@@ -137,15 +145,15 @@ for env_var in "${!overwrite_env_values[@]}"; do
         fi
         let i++
     done
-    overwrite_env_values[${env_var}]=${lists_str}
+    cleared_env_values[${env_var}]=${lists_str}
 done
 
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
     command="echo \"Info: Clearing...\""
     i=0
-    for env_var in "${!overwrite_env_values[@]}"; do
-        command="${command} && export ${env_var}=\"${overwrite_env_values[${env_var}]}\""
+    for env_var in "${!cleared_env_values[@]}"; do
+        command="${command} && export ${env_var}=\"${cleared_env_values[${env_var}]}\""
         let i++;
     done
     command="${command} && echo \"Info: Done\""
