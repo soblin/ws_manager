@@ -9,32 +9,37 @@ For cleaning up and re-initializing the shell variables with <ws_dir> as well as
 source <(ros2 run ws_manager ws_manager --reinit <ws_path>)\
 "
 
-SEPARATOR="========================================"
+SEPARATOR="----------------------------------------"
+
+RED='\033[1;31m' # Light Red
+GREEN='\033[1;32m' # Light Greeen
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
 ECHO_INFO() {
     local -n _body=$1
     if [[ "${_body}" == "" ]]; then
-        _body="echo \"[INFO]: $2\""
+        _body="echo -e \"${GREEN}[INFO]${NC}: $2\""
     else
-        _body="${_body};echo \"[INFO]: $2\""
+        _body="${_body};echo -e \"${GREEN}[INFO]${NC}: $2\""
     fi
 }
 
 ECHO_WARN() {
     local -n _body=$1
     if [[ "${_body}" == "" ]]; then
-        _body="echo \"[WARN]: $2\""
+        _body="echo -e \"${YELLOW}[WARN]${NC}: $2\""
     else
-        _body="${_body};echo \"[WARN]: $2\""
+        _body="${_body};echo -e \"${YELLOW}[WARN]${NC}: $2\""
     fi
 }
 
 ECHO_ERROR() {
     local -n _body=$1
     if [[ "${_body}" == "" ]]; then
-        _body="echo \"[ERROR]: $2\""
+        _body="echo -e \"${RED}[ERROR]${NC}: $2\""
     else
-        _body="${_body};echo \"[ERROR]: $2\""
+        _body="${_body};echo -e \"${RED}[ERROR]${NC}: $2\""
     fi
 }
 
@@ -155,16 +160,16 @@ done
 
 let max_item_num=5 # TODO
 if [[ ${cmd} == "check" ]]; then
-    echo "${SEPARATOR}"
+    echo -e "${SEPARATOR}"
     for env_var in "${!map_var_values[@]}"; do
         values=(${map_var_values[${env_var}]}) # NOTE: do (${var}), in order to interpret as array
         item_num=${#values[@]}
         cnt_num=${item_num}
         if [[ "${item_num}" -gt "${max_item_num}" ]]; then
-            echo "${env_var}(${max_item_num} out of ${item_num} items):"
+            echo -e "${GREEN}${env_var}${NC} [${YELLOW}${max_item_num} out of ${item_num} items${NC}]:"
             cnt_num=${max_item_num}
         else
-            echo "${env_var}:"
+            echo -e "${GREEN}${env_var}${NC}:"
         fi
         let cnt_num=${cnt_num}-1 # NOTE: for seq indexing
         for i in `seq 0 ${cnt_num}`; do
@@ -174,7 +179,7 @@ if [[ ${cmd} == "check" ]]; then
         if [[ "${cnt_num}" != "${item_num}" ]]; then
             echo "......"
         fi
-        echo "${SEPARATOR}"
+        echo -e "${SEPARATOR}"
     done
     exit
 fi
@@ -211,7 +216,7 @@ convert_path_list2str map_var_newvalues
 if [[ ${cmd} == "clear" ]]; then
     # print the command to `source`
     body=""
-    ECHO_INFO body "Clearing..."
+    ECHO_INFO body "Clearing ${ws_path}..."
     i=0
     for env_var in "${!map_var_newvalues[@]}"; do
         cmd="export ${env_var}=\"${map_var_newvalues[${env_var}]}\""
